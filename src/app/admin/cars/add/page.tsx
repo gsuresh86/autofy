@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { getBrands, getFuelTypes, getTransmissions, getColors, getYearRange } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function AddCarPage() {
@@ -59,17 +60,59 @@ export default function AddCarPage() {
     setIsLoading(true)
 
     try {
-      // Here you would typically upload images to Supabase Storage
-      // and then save the car data to the database
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      // Validate required fields
+      if (!formData.title || !formData.brand || !formData.model || !formData.price) {
+        toast.error('Please fill in all required fields')
+        return
+      }
+
+      // Prepare car data for database
+      const carData = {
+        title: formData.title,
+        brand: formData.brand,
+        model: formData.model,
+        year: parseInt(formData.year.toString()),
+        price: parseFloat(formData.price),
+        mileage: formData.mileage ? parseInt(formData.mileage) : null,
+        fuel_type: formData.fuel_type || null,
+        transmission: formData.transmission || null,
+        color: formData.color || null,
+        description: formData.description || null,
+        location: formData.location || null,
+        contact_number: formData.contact_number || null,
+        is_featured: formData.is_featured,
+        status: formData.status,
+      }
+
+      // Insert car into database
+      const { data: car, error: carError } = await supabase
+        .from('cars')
+        .insert([carData])
+        .select()
+        .single()
+
+      if (carError) {
+        throw new Error(`Error saving car: ${carError.message}`)
+      }
+
+      console.log('Car saved successfully:', car)
+
+      // Handle image uploads if any
+      if (images.length > 0) {
+        // For now, we'll just log the images
+        // In a real implementation, you would upload to Supabase Storage
+        console.log('Images to upload:', images)
+        
+        // TODO: Implement image upload to Supabase Storage
+        // const imageUrls = await uploadImagesToStorage(images, car.id)
+        // await saveCarImages(car.id, imageUrls)
+      }
+
       toast.success('Car added successfully!')
       router.push('/admin/cars')
     } catch (err) {
       console.error('Error adding car:', err)
-      toast.error('Failed to add car. Please try again.')
+      toast.error(err instanceof Error ? err.message : 'Failed to add car. Please try again.')
     } finally {
       setIsLoading(false)
     }

@@ -1,86 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react'
-import { Car } from '@/lib/supabase'
-
-// Mock cars data
-const mockCars: Car[] = [
-  {
-    id: '1',
-    title: 'Honda City VX',
-    brand: 'Honda',
-    model: 'City',
-    year: 2022,
-    price: 850000,
-    mileage: 15000,
-    fuel_type: 'Petrol',
-    transmission: 'Manual',
-    color: 'White',
-    location: 'Mumbai',
-    is_featured: true,
-    status: 'available',
-    created_at: '2024-01-15',
-    updated_at: '2024-01-15',
-  },
-  {
-    id: '2',
-    title: 'Maruti Swift VXI',
-    brand: 'Maruti Suzuki',
-    model: 'Swift',
-    year: 2021,
-    price: 650000,
-    mileage: 25000,
-    fuel_type: 'Petrol',
-    transmission: 'Manual',
-    color: 'Red',
-    location: 'Delhi',
-    is_featured: false,
-    status: 'sold',
-    created_at: '2024-01-14',
-    updated_at: '2024-01-14',
-  },
-  {
-    id: '3',
-    title: 'Hyundai i20 Sportz',
-    brand: 'Hyundai',
-    model: 'i20',
-    year: 2023,
-    price: 750000,
-    mileage: 8000,
-    fuel_type: 'Petrol',
-    transmission: 'Manual',
-    color: 'Blue',
-    location: 'Bangalore',
-    is_featured: true,
-    status: 'available',
-    created_at: '2024-01-13',
-    updated_at: '2024-01-13',
-  },
-  {
-    id: '4',
-    title: 'Tata Nexon XM',
-    brand: 'Tata',
-    model: 'Nexon',
-    year: 2022,
-    price: 1200000,
-    mileage: 12000,
-    fuel_type: 'Electric',
-    transmission: 'Automatic',
-    color: 'White',
-    location: 'Chennai',
-    is_featured: false,
-    status: 'reserved',
-    created_at: '2024-01-12',
-    updated_at: '2024-01-12',
-  },
-]
+import { Car, supabase } from '@/lib/supabase'
+import toast from 'react-hot-toast'
 
 export default function AdminCarsPage() {
-  const [cars, setCars] = useState<Car[]>(mockCars)
+  const [cars, setCars] = useState<Car[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+
+  // Fetch cars from database
+  useEffect(() => {
+    fetchCars()
+  }, [])
+
+  const fetchCars = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('cars')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        throw error
+      }
+
+      setCars(data || [])
+    } catch (err) {
+      console.error('Error fetching cars:', err)
+      toast.error('Failed to load cars')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredCars = cars.filter(car => {
     const matchesSearch = car.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,9 +45,24 @@ export default function AdminCarsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const handleDeleteCar = (id: string) => {
+  const handleDeleteCar = async (id: string) => {
     if (confirm('Are you sure you want to delete this car?')) {
-      setCars(cars.filter(car => car.id !== id))
+      try {
+        const { error } = await supabase
+          .from('cars')
+          .delete()
+          .eq('id', id)
+
+        if (error) {
+          throw error
+        }
+
+        toast.success('Car deleted successfully')
+        fetchCars() // Refresh the list
+      } catch (err) {
+        console.error('Error deleting car:', err)
+        toast.error('Failed to delete car')
+      }
     }
   }
 
@@ -153,102 +124,114 @@ export default function AdminCarsPage() {
         </div>
       </div>
 
-      {/* Cars Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Car
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Featured
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCars.map((car) => (
-                <tr key={car.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{car.title}</div>
-                      <div className="text-sm text-gray-500">{car.brand} • {car.year}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      ₹{car.price.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(car.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {car.location}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {car.is_featured ? (
-                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                        Featured
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">No</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <Link
-                        href={`/cars/${car.id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                      <Link
-                        href={`/admin/cars/${car.id}`}
-                        className="text-green-600 hover:text-green-900"
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteCar(car.id)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredCars.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Search className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No cars found</h3>
-            <p className="text-gray-600">Try adjusting your search criteria</p>
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white rounded-lg shadow-sm border p-8">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Loading cars...</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Cars Table */}
+      {!loading && (
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Car
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Featured
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredCars.map((car) => (
+                  <tr key={car.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{car.title}</div>
+                        <div className="text-sm text-gray-500">{car.brand} • {car.year}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        ₹{car.price.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(car.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {car.location}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {car.is_featured ? (
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                          Featured
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">No</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <Link
+                          href={`/cars/${car.id}`}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="View"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          href={`/admin/cars/${car.id}`}
+                          className="text-green-600 hover:text-green-900"
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteCar(car.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredCars.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Search className="h-12 w-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No cars found</h3>
+              <p className="text-gray-600">Try adjusting your search criteria</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 } 
