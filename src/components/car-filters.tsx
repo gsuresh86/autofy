@@ -1,6 +1,6 @@
 'use client'
 
-import { getBrands, getFuelTypes, getTransmissions, getColors, getYearRange } from '@/lib/utils'
+import { getBrands, getFuelTypes, getTransmissions, getYearRange } from '@/lib/utils'
 
 interface Filters {
   brand: string
@@ -20,12 +20,11 @@ export default function CarFilters({ filters, setFilters }: CarFiltersProps) {
   const brands = getBrands()
   const fuelTypes = getFuelTypes()
   const transmissions = getTransmissions()
-  const colors = getColors()
   const years = getYearRange()
 
   const locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata']
 
-  const updateFilter = (key: keyof Filters, value: any) => {
+  const updateFilter = (key: keyof Filters, value: string | number | [number, number]) => {
     setFilters({ ...filters, [key]: value })
   }
 

@@ -52,7 +52,7 @@ export default function CarsPage() {
 
   // Filter cars based on search term and filters
   useEffect(() => {
-    let filtered = cars.filter(car => {
+    const filtered = cars.filter(car => {
       // Search term filter
       const searchMatch = car.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          car.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||

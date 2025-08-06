@@ -40,6 +40,8 @@ export default function CarDetailsPage({ params }: { params: { id: string } }) {
   const [isFavorite, setIsFavorite] = useState(false)
 
   // In a real app, you would fetch the car data based on params.id
+  // For now, we'll use mock data but log the ID for future implementation
+  console.log('Car ID:', params.id)
   const car = mockCar
 
   const specifications = [

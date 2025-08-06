@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { getBrands, getFuelTypes, getTransmissions, getColors, getYearRange } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -66,7 +67,8 @@ export default function AddCarPage() {
       
       toast.success('Car added successfully!')
       router.push('/admin/cars')
-    } catch (error) {
+    } catch (err) {
+      console.error('Error adding car:', err)
       toast.error('Failed to add car. Please try again.')
     } finally {
       setIsLoading(false)
@@ -386,9 +388,11 @@ export default function AddCarPage() {
                   <div className="grid grid-cols-2 gap-2">
                     {images.map((image, index) => (
                       <div key={index} className="relative">
-                        <img
+                        <Image
                           src={URL.createObjectURL(image)}
                           alt={`Preview ${index + 1}`}
+                          width={200}
+                          height={96}
                           className="w-full h-24 object-cover rounded-md"
                         />
                         <button
